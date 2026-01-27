@@ -59,3 +59,11 @@ export interface Oeuvre {
   questions_rapides: string[];
   palette_atelier: string[];
 }
+
+// Types for Atelier Screen
+export interface Point { x: number; y: number; }
+interface BaseShape { id: number; color: string; }
+export interface RectShape extends BaseShape { type: 'rect'; x: number; y: number; size: number; }
+export interface CircleShape extends BaseShape { type: 'circle'; x: number; y: number; size: number; }
+export interface PathShape extends BaseShape { type: 'path'; strokeWidth: number; points: Point[]; }
+export type AtelierShape = RectShape | CircleShape | PathShape;

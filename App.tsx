@@ -7,6 +7,7 @@ import GenericScreen from './components/GenericScreen';
 import GalerieScreen from './components/GalerieScreen';
 import AtelierScreen from './components/AtelierScreen';
 import Loading from './components/Loading';
+import ChatScreen from './components/ChatScreen';
 
 const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<ApiResponse | null>(null);
@@ -67,6 +68,9 @@ const App: React.FC = () => {
       case 'atelier':
       case 'resultat':
         return <AtelierScreen data={currentScreen} onChipClick={handleInteraction} />;
+      case 'chat':
+      case 'citations':
+        return <ChatScreen data={currentScreen} onChipClick={handleInteraction} />;
       default:
         return <GenericScreen data={currentScreen} onChipClick={handleInteraction} />;
     }
