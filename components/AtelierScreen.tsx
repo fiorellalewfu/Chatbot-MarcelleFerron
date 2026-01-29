@@ -16,7 +16,7 @@ const BRUSH_SIZES = { fin: 4, moyen: 10, epais: 20 };
 function pointsToPathD(points: Point[]): string {
   if (points.length < 2) {
     // A single point can be a small dot, but L needs at least 2 points
-    return points.map(p => `M ${p.x-0.5} ${p.y} A 0.5 0.5 0 1 0 ${p.x} ${p.y}`).join(' ');
+    return points.map(p => `M ${p.x - 0.5} ${p.y} A 0.5 0.5 0 1 0 ${p.x} ${p.y}`).join(' ');
   }
   return points.reduce((acc, point, i) => {
     if (i === 0) return `M ${point.x} ${point.y}`;
@@ -30,7 +30,7 @@ const AtelierScreen: React.FC<AtelierScreenProps> = ({ data, onChipClick }) => {
   const [currentTool, setCurrentTool] = useState<Tool>('rect');
   const [brushSize, setBrushSize] = useState<number>(BRUSH_SIZES.moyen);
   const isDrawing = useRef(false);
-  
+
   const palette = useMemo(() => {
     const oeuvreId = data.context?.oeuvre_id;
     if (oeuvreId) {
@@ -41,78 +41,78 @@ const AtelierScreen: React.FC<AtelierScreenProps> = ({ data, onChipClick }) => {
     }
     return ['#ef4444', '#3b82f6', '#facc15', '#22c55e', '#111827', '#f9fafb']; // Default
   }, [data.context]);
-  
+
   useEffect(() => {
     setCurrentColor(palette[0]);
   }, [palette]);
 
-  const getPointInSvg = (event: React.MouseEvent<SVGSVGElement> | React.TouchEvent<SVGSVGElement>): Point | null => {
-      const svg = event.currentTarget;
-      const screenCTM = svg.getScreenCTM();
-      if (!screenCTM) return null;
+  // Updated to use PointerEvent for both mouse and touch
+  const getPointInSvg = (event: React.PointerEvent<SVGSVGElement>): Point | null => {
+    const svg = event.currentTarget;
+    const screenCTM = svg.getScreenCTM();
+    if (!screenCTM) return null;
 
-      let clientX, clientY;
-      if ('touches' in event) {
-        clientX = event.touches[0].clientX;
-        clientY = event.touches[0].clientY;
-      } else {
-        clientX = event.clientX;
-        clientY = event.clientY;
-      }
-
-      const pt = svg.createSVGPoint();
-      pt.x = clientX;
-      pt.y = clientY;
-      return pt.matrixTransform(screenCTM.inverse());
+    const pt = svg.createSVGPoint();
+    pt.x = event.clientX;
+    pt.y = event.clientY;
+    return pt.matrixTransform(screenCTM.inverse());
   };
 
-  const handleMouseDown = (event: React.MouseEvent<SVGSVGElement>) => {
+  const handlePointerDown = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (!event.isPrimary) return; // Only handle primary pointer (e.g., left mouse, single touch)
     isDrawing.current = true;
+    event.currentTarget.setPointerCapture(event.pointerId);
+
     const point = getPointInSvg(event);
     if (!point) return;
 
     if (currentTool === 'brush') {
-        setShapes(prev => [...prev, {
-            id: Date.now(),
-            type: 'path',
-            color: currentColor,
-            strokeWidth: brushSize,
-            points: [point]
-        }]);
+      setShapes(prev => [...prev, {
+        id: Date.now(),
+        type: 'path',
+        color: currentColor,
+        strokeWidth: brushSize,
+        points: [point]
+      }]);
     } else {
-        const newShape: AtelierShape = {
-            id: Date.now(),
-            type: currentTool,
-            color: currentColor,
-            x: point.x,
-            y: point.y,
-            size: Math.random() * 60 + 40
-        };
-        setShapes(prev => [...prev, newShape]);
+      const newShape: AtelierShape = {
+        id: Date.now(),
+        type: currentTool,
+        color: currentColor,
+        x: point.x,
+        y: point.y,
+        size: Math.random() * 60 + 40
+      };
+      setShapes(prev => [...prev, newShape]);
     }
   };
 
-  const handleMouseMove = (event: React.MouseEvent<SVGSVGElement>) => {
-    if (!isDrawing.current || currentTool !== 'brush') return;
+  const handlePointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (!isDrawing.current || !event.isPrimary || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    
     const point = getPointInSvg(event);
     if (!point) return;
-    
-    setShapes(prev => {
+
+    if (currentTool === 'brush') {
+      setShapes(prev => {
         const lastShape = prev[prev.length - 1];
         if (lastShape && lastShape.type === 'path') {
-            const newShapes = [...prev];
-            newShapes[newShapes.length - 1] = {
-                ...lastShape,
-                points: [...lastShape.points, point]
-            };
-            return newShapes;
+          const newShapes = [...prev];
+          newShapes[newShapes.length - 1] = {
+            ...lastShape,
+            points: [...lastShape.points, point]
+          };
+          return newShapes;
         }
         return prev;
-    });
+      });
+    }
   };
 
-  const handleMouseUp = () => {
+  const handlePointerUp = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (!event.isPrimary) return;
     isDrawing.current = false;
+    event.currentTarget.releasePointerCapture(event.pointerId);
   };
 
   return (
@@ -182,10 +182,10 @@ const AtelierScreen: React.FC<AtelierScreenProps> = ({ data, onChipClick }) => {
       <div className="w-full lg:w-2/3 xl:w-3/4 bg-gray-900 rounded-lg overflow-hidden border-2 border-gray-700">
         <svg
           className="w-full h-full cursor-crosshair touch-none"
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={handlePointerUp}
           viewBox="0 0 800 600"
           preserveAspectRatio="xMidYMid meet"
         >
