@@ -3,8 +3,7 @@ import { NAVIGATION_SYSTEM_PROMPT, CHATBOT_SYSTEM_PROMPT } from '../constants/pr
 import { CATALOGUE_STRING } from '../constants/catalogue';
 import type { ApiResponse, ChatMessage } from '../types/index';
 
-// Fix: Adhere to coding guidelines by using process.env.API_KEY for the API key.
-// This also resolves the original TypeScript error on 'import.meta.env'.
+// FIX: Aligned API key initialization with @google/genai guidelines. This resolves the TypeScript error by using process.env.API_KEY as required.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // --- 1. Service for App Navigation (JSON Responses) ---
